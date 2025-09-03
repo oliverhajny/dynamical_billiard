@@ -4,7 +4,6 @@ from typing import Tuple
 
 EPS = 1e-12
 NUDGE = 1e-9
-speed = 2.0
 
 # Vectors handling
 
@@ -105,6 +104,7 @@ def intersect_line_with_ellipse(
             x, y = snap_to_ellipse(x, y, a, b)
             return ((x, y), t) if return_t else (x, y)
 
+        # Nudge in case of a position really close to the tangent
         if any(abs(t) <= eps for t in (t1, t2)):
             nvx, nvy = normalize(direction)
             x0 += nvx * NUDGE * max(a, b)
@@ -113,63 +113,4 @@ def intersect_line_with_ellipse(
 
         raise ValueError("No valid forward intersection")
     
-    raise RuntimeError("Intersection failed after nudging attempts")
-
-# Reflection
-
-def reflect(direction: np.ndarray, normal: np.ndarray) -> np.ndarray:
-    """
-    Calculates the reflected vector after an impact.
-    """
-    normal = normalize(normal)
-    direction = normalize(direction)
-    dot_prod = dot(direction, normal)
-    reflection = direction - 2 * dot_prod * normal
-    return normalize(reflection)
-
-def advance(
-    point: np.ndarray,
-    direction: np.ndarray,
-    a: float,
-    b: float,
-    *,
-    return_t: bool = True,
-) -> Tuple[np.ndarray, np.ndarray] | Tuple[np.ndarray, np.ndarray, float]:
-    # 1) průsečík + vzdálenost k dopadu
-    impact_point, t = intersect_line_with_ellipse(point, direction, a, b)
-
-    # 2) normála v bodě dopadu
-    n_hat = normal_at_point(impact_point, a, b)
-
-    # 3) nový směr
-    v = np.asarray(direction, dtype=float)
-    v = v / np.linalg.norm(v)
-    new_dir = reflect(v, n_hat)
-
-    impact_point = np.asarray(impact_point, dtype=float)
-
-    if return_t:
-        return impact_point, new_dir, t
-    else:
-        return impact_point, new_dir
-
-def advance_with_time(
-    point: np.ndarray,
-    direction: np.ndarray,
-    speed: float,
-    a: float,
-    b: float,
-    *,
-    return_t: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, float] | Tuple[np.ndarray, np.ndarray, float, float]:
-    if speed <= 0:
-        raise ValueError("speed must be > 0")
-
-    out = advance(point, direction, a, b, return_t=True)
-    impact_point, new_dir, t = out  # t = geometrická vzdálenost
-    dt = t / float(speed)
-
-    if return_t:
-        return impact_point, new_dir, dt, t  # vracím i t (užitečné pro debug)
-    else:
-        return impact_point, new_dir
+    raise ValueError("No valid forward intersection (tangent/edge)")
