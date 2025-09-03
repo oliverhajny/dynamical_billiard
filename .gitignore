@@ -1,0 +1,27 @@
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# pytest cache
+.pytest_cache/
+
+# VS Code settings
+.vscode/
+
+# Jupyter notebook checkpoints (kdybys někdy používal)
+.ipynb_checkpoints/
+
+# OS-specific
+.DS_Store
+Thumbs.db
