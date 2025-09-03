@@ -180,3 +180,39 @@ def test_advance_with_time_speed_must_be_positive():
     d0 = np.array([1.0, 0.0])
     with pytest.raises(ValueError):
         _ = advance_with_time(p0, d0, 0.0, a, b, return_t=True)
+
+def test_start_on_boundary_pure_tangent_raises():
+    a, b = 2.0, 1.0
+    p0 = np.array([2.0, 0.0])      # na hraně
+    d0 = np.array([0.0, 1.0])      # čistě tečně (svisle nahoru)
+    with pytest.raises(ValueError):
+        _ = advance(p0, d0, a, b, return_t=True)
+
+def test_start_on_boundary_outward_raises():
+    a, b = 2.0, 1.0
+    p0 = np.array([2.0, 0.0])      # na hraně
+    d0 = np.array([1.0, 0.0])      # ven
+    with pytest.raises(ValueError):
+        _ = advance(p0, d0, a, b, return_t=True)
+
+def test_near_tangent_from_inside_still_hits_forward():
+    a, b = 2.0, 1.0
+    # malinko uvnitř u (2,0): posuň se dovnitř o epsilon po normále
+    eps = 1e-6
+    p0 = np.array([2.0 - eps, 0.0])
+    # téměř tečný směr (malá složka dovnitř)
+    d0 = np.array([-1e-3, 1.0])
+    d0 = d0 / np.linalg.norm(d0)
+
+    impact, new_dir, t = advance(p0, d0, a, b, return_t=True)
+    # očekáváme dopředný zásah s kladným t (může být malé)
+    assert t > 0
+    # směr po odrazu je jednotkový
+    assert abs(np.linalg.norm(new_dir) - 1.0) < 1e-9
+
+def test_advance_with_time_tangent_raises_too():
+    a, b = 2.0, 1.0
+    p0 = np.array([2.0, 0.0])
+    d0 = np.array([0.0, 1.0])      # tečně
+    with pytest.raises(ValueError):
+        _ = advance_with_time(p0, d0, speed=1.0, a=a, b=b, return_t=True)

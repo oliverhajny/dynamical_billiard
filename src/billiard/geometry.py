@@ -4,7 +4,7 @@ from typing import Tuple
 
 EPS = 1e-12
 NUDGE = 1e-9
-speed = 1.0
+speed = 2.0
 
 # Vectors handling
 
