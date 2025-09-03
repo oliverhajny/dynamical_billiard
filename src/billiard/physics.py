@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from typing import Tuple
+from typing import Tuple, Union
 from billiard.geometry import dot, normalize, normal_at_point, intersect_line_with_ellipse
 
 speed = 1.0
@@ -22,7 +22,7 @@ def advance(
     b: float,
     *,
     return_t: bool = True,
-) -> Tuple[np.ndarray, np.ndarray] | Tuple[np.ndarray, np.ndarray, float]:
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, float]]:
     # 1) průsečík + vzdálenost k dopadu
     impact_point, t = intersect_line_with_ellipse(point, direction, a, b)
 
@@ -49,7 +49,7 @@ def advance_with_time(
     b: float,
     *,
     return_t: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, float] | Tuple[np.ndarray, np.ndarray, float, float]:
+) -> Union[Tuple[np.ndarray, np.ndarray, float], Tuple[np.ndarray, np.ndarray, float, float]]:
     if speed <= 0:
         raise ValueError("speed must be > 0")
 

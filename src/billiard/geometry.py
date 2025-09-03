@@ -52,7 +52,7 @@ def intersect_line_with_ellipse(
         *,
         eps: float = EPS,
         return_t: bool = True,
-        ) -> Tuple[Tuple[float, float], float] | Tuple[float, float]:
+        ) -> tuple[tuple[float, float], float] | tuple[float, float]:
     """
     Najdi nejbližší průsečík přímky (point + t*direction, t>0) s elipsou x^2/a^2 + y^2/b^2 = 1.
     - Ošetří tečnu (D ~ 0) i start na hraně (t ~ 0) jemným posunem.
