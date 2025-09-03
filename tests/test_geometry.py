@@ -1,4 +1,5 @@
 import math
+import pytest
 from billiard.geometry import normal_at_point
 from billiard.geometry import intersect_line_with_ellipse
 
@@ -35,50 +36,61 @@ def test_normal_is_unit_length():
         length = math.sqrt(n[0]**2 + n[1]**2)
         assert abs(length - 1.0) < 1e-6
 
-def test_intersect_line_with_circle():
-    a = b = 1.0
-    # Start at origin, direction (1,0)
-    pt = (0.0, 0.0)
-    dir = (1.0, 0.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    assert almost_equal((x, y), (1.0, 0.0))
-    # Start at (0.5, 0), direction (1,0)
-    pt = (0.5, 0.0)
-    dir = (1.0, 0.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    assert almost_equal((x, y), (1.0, 0.0))
-    # Start at (0,0.5), direction (0,1)
-    pt = (0.0, 0.5)
-    dir = (0.0, 1.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    assert almost_equal((x, y), (0.0, 1.0))
+# pomocná funkce: bod leží na elipse?
+def on_ellipse(x, y, a, b, eps=1e-9):
+    val = (x**2)/(a**2) + (y**2)/(b**2)
+    return abs(val - 1.0) < eps
 
-def test_intersect_line_with_ellipse():
+def test_simple_horizontal_hit():
     a, b = 2.0, 1.0
-    # Start at origin, direction (1,0)
-    pt = (0.0, 0.0)
-    dir = (1.0, 0.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    assert almost_equal((x, y), (2.0, 0.0))
-    # Start at origin, direction (0,1)
-    pt = (0.0, 0.0)
-    dir = (0.0, 1.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    assert almost_equal((x, y), (0.0, 1.0))
-    # Start at (1,0), direction (1,1)
-    pt = (1.0, 0.0)
-    dir = (1.0, 1.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    # Should hit ellipse, check if result satisfies ellipse equation
-    assert abs((x/a)**2 + (y/b)**2 - 1.0) < 1e-6
+    point = (0.0, 0.0)
+    direction = (1.0, 0.0)
+    (x, y), t = intersect_line_with_ellipse(point, direction, a, b)
+    assert on_ellipse(x, y, a, b)
+    assert pytest.approx(x, rel=1e-9) == 2.0
+    assert pytest.approx(y, rel=1e-9) == 0.0
+    assert t > 0
 
-def test_intersect_line_with_ellipse_boundary_start():
+def test_simple_vertical_hit():
     a, b = 2.0, 1.0
-    # Start at boundary, direction outward
-    pt = (2.0, 0.0)
-    dir = (1.0, 0.0)
-    x, y = intersect_line_with_ellipse(pt, dir, a, b)
-    # Should be the same point (or very close)
-    assert almost_equal((x, y), (2.0, 0.0))
+    point = (0.0, 0.0)
+    direction = (0.0, 1.0)
+    (x, y), t = intersect_line_with_ellipse(point, direction, a, b)
+    assert on_ellipse(x, y, a, b)
+    assert pytest.approx(x, rel=1e-9) == 0.0
+    assert pytest.approx(y, rel=1e-9) == 1.0
 
-#
+def test_diagonal_hit_circle():
+    a, b = 1.0, 1.0
+    point = (0.0, 0.0)
+    direction = (1.0, 1.0)
+    (x, y), t = intersect_line_with_ellipse(point, direction, a, b)
+    # na kružnici by měl být průsečík (√2/2, √2/2)
+    s = math.sqrt(2)/2
+    assert on_ellipse(x, y, a, b)
+    assert pytest.approx(x, rel=1e-9) == s
+    assert pytest.approx(y, rel=1e-9) == s
+
+def test_start_on_boundary_and_go_inside():
+    a, b = 2.0, 1.0
+    point = (2.0, 0.0)  # start na hraně
+    direction = (-1.0, 0.5)   # míří šikmo dovnitř
+   # směr dovnitř
+    (x, y), t = intersect_line_with_ellipse(point, direction, a, b)
+    assert on_ellipse(x, y, a, b)
+    assert t > 0
+
+def test_start_on_boundary_and_go_outside_raises():
+    a, b = 2.0, 1.0
+    point = (2.0, 0.0)       # bod na hraně
+    direction = (1.0, 0.0)   # směr ven
+    with pytest.raises(ValueError):
+        intersect_line_with_ellipse(point, direction, a, b)
+
+def test_tangent_hit():
+    a, b = 2.0, 1.0
+    point = (0.0, 0.0)
+    direction = (2.0, 1.0)   # míří skoro tangentně
+    (x, y), t = intersect_line_with_ellipse(point, direction, a, b)
+    assert on_ellipse(x, y, a, b)
+    assert t > 0
