@@ -61,3 +61,18 @@ def advance_with_time(
         return impact_point, new_dir, dt, t  # vracím i t (užitečné pro debug)
     else:
         return impact_point, new_dir
+
+def position_at_time(
+    point: np.ndarray,
+    direction: np.ndarray,
+    speed: float,
+    t: float
+) -> np.ndarray:
+    """
+    Returns the position of the ball after time t, moving from 'point' in 'direction' at 'speed'.
+    Assumes straight-line motion (no impact).
+    """
+    direction = np.asarray(direction, dtype=float)
+    direction = direction / np.linalg.norm(direction)
+    displacement = direction * speed * t
+    return np.asarray(point, dtype=float) + displacement

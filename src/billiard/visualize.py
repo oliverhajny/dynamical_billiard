@@ -1,31 +1,48 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
 from billiard.simulation import run
 from billiard.state import State
+from billiard.physics import position_at_time
 
-# setup
-a, b = 5, 3
-c = np.sqrt(a**2 - b**2)  # focal distance
-F1 = np.array([-c, 0.0])
-F2 = np.array([ c, 0.0])
-s0 = State(pos = np.array([5.0, 0.0]),
-           dir = np.array([-1.0, 0.5]),
-           speed = 1.0,
-           time = 0.0)
+# animace
 
-# spustíme simulaci
-states = run(s0, a, b, max_bounces=200)
+def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, save_path: str | None = None):
+    # 1) vytáhni pozice
+    xs = np.array([s.pos[0] for s in states], dtype=float)
+    ys = np.array([s.pos[1] for s in states], dtype=float)
 
-# vyberem z každého stavu pozici
-xs = [s.pos[0] for s in states]
-ys = [s.pos[1] for s in states]
+    # 2) figure + axes + elipsa
+    fig, ax = plt.subplots()
+    t = np.linspace(0, 2*np.pi, 400)
+    ax.plot(a*np.cos(t), b*np.sin(t), linewidth=1.2)   # obrys elipsy
 
-# elipsa
-t = np.linspace(0, 2*np.pi, 400)
-plt.plot(a*np.cos(t), b*np.sin(t), "k") # černá čára
+    path, = ax.plot([], [], linewidth=1.0)             # čára trajektorie
+    dot,  = ax.plot([], [], "o")                       # aktuální bod
 
-# trajectory
-plt.plot(xs, ys, "-o", markersize=3)
+    ax.set_aspect("equal", adjustable="box")   
+    m = 1.1
+    ax.set_xlim(-m*a, m*a)
+    ax.set_ylim(-m*b, m*b)
+    ax.set_xlabel("x"); ax.set_ylabel("y")
+    ax.set_title("Elliptic billiard")
 
-plt.gca().set_aspect("equal", adjustable="box")
-plt.show()
+    # 3) init + update
+    def init():
+        path.set_data([], [])
+        dot.set_data([], [])
+        return path, dot
+
+    def update(i):
+        path.set_data(xs[:i+1], ys[:i+1])
+        dot.set_data([xs[i]], [ys[i]])  # <-- wrap in list
+        return path, dot
+
+    ani = animation.FuncAnimation(fig, update, frames=len(xs), init_func=init,
+                                  blit=True, interval=interval_ms, repeat=False)
+
+    if save_path:
+        # pro MP4 potřebuješ v systému ffmpeg; pro GIF pillow/imagio
+        ani.save(save_path, fps=max(1, 1000 // max(1, interval_ms)))
+    else:
+        plt.show()
