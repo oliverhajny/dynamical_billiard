@@ -1,31 +1,32 @@
 import numpy as np
 import math
-from typing import Tuple, Sequence
+from typing import Tuple
 
 EPS = 1e-12
 NUDGE = 1e-9
+speed = 1.0
 
 # Vectors handling
 
-def length(v: Sequence[float]) -> float:
+def length(v: np.ndarray) -> float:
     v = np.array(v)
     return np.linalg.norm(v)
 
-def normalize(v: Sequence[float]) -> Tuple[float, float]:
+def normalize(v: np.ndarray) -> Tuple[float, float]:
     v = np.array(v)
     l = length(v)
     if l == 0:
         raise ValueError("Zero-length vector")
     return v / l
 
-def dot(u: Sequence[float], v: Sequence[float]) -> float:
+def dot(u: np.ndarray, v: np.ndarray) -> float:
     u = np.array(u)
     v = np.array(v)
     return float(np.dot(u, v))
 
 # Ellipse
 
-def normal_at_point(point: Sequence[float], a: float, b: float) -> Tuple[float, float]:
+def normal_at_point(point: np.ndarray, a: float, b: float) -> Tuple[float, float]:
     """
     Returns the normal vector (normalized gradient) in the point "point"
     on an ellipse with axes "a" and "b"
@@ -45,8 +46,8 @@ def snap_to_ellipse(x: float, y: float, a: float, b: float) -> Tuple[float, floa
     return x * s, y * s
 
 def intersect_line_with_ellipse(
-        point: Sequence[float], 
-        direction: Sequence[float], 
+        point: np.ndarray, 
+        direction: np.ndarray, 
         a: float, 
         b: float,
         *,
@@ -114,7 +115,61 @@ def intersect_line_with_ellipse(
     
     raise RuntimeError("Intersection failed after nudging attempts")
 
- 
-
-
 # Reflection
+
+def reflect(direction: np.ndarray, normal: np.ndarray) -> np.ndarray:
+    """
+    Calculates the reflected vector after an impact.
+    """
+    normal = normalize(normal)
+    direction = normalize(direction)
+    dot_prod = dot(direction, normal)
+    reflection = direction - 2 * dot_prod * normal
+    return normalize(reflection)
+
+def advance(
+    point: np.ndarray,
+    direction: np.ndarray,
+    a: float,
+    b: float,
+    *,
+    return_t: bool = True,
+) -> Tuple[np.ndarray, np.ndarray] | Tuple[np.ndarray, np.ndarray, float]:
+    # 1) průsečík + vzdálenost k dopadu
+    impact_point, t = intersect_line_with_ellipse(point, direction, a, b)
+
+    # 2) normála v bodě dopadu
+    n_hat = normal_at_point(impact_point, a, b)
+
+    # 3) nový směr
+    v = np.asarray(direction, dtype=float)
+    v = v / np.linalg.norm(v)
+    new_dir = reflect(v, n_hat)
+
+    impact_point = np.asarray(impact_point, dtype=float)
+
+    if return_t:
+        return impact_point, new_dir, t
+    else:
+        return impact_point, new_dir
+
+def advance_with_time(
+    point: np.ndarray,
+    direction: np.ndarray,
+    speed: float,
+    a: float,
+    b: float,
+    *,
+    return_t: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, float] | Tuple[np.ndarray, np.ndarray, float, float]:
+    if speed <= 0:
+        raise ValueError("speed must be > 0")
+
+    out = advance(point, direction, a, b, return_t=True)
+    impact_point, new_dir, t = out  # t = geometrická vzdálenost
+    dt = t / float(speed)
+
+    if return_t:
+        return impact_point, new_dir, dt, t  # vracím i t (užitečné pro debug)
+    else:
+        return impact_point, new_dir
