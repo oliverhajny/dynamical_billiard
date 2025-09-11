@@ -25,3 +25,11 @@ dist/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv   
+*.webm

@@ -21,10 +21,10 @@ def next_step(state: State, a: float, b: float) -> State:
 def run(initial: State, a: float, b: float, *,
         max_bounces: int = 1000,
         max_time: Optional[float] = None,
-        collect_states: bool = True) -> List[State]:
+        collect_states: bool = True) -> tuple[List[State], int]:
     """
     Spustí simulaci od počátečního stavu.
-    Vrátí seznam stavů (nebo jen trajektorii, podle collect_states).
+    Vrátí seznam stavů (nebo jen výslednou pozici, podle collect_states) a počet odrazů.
     """
     bounces = 0
     states: List[State] = [initial] if collect_states else []
@@ -41,6 +41,6 @@ def run(initial: State, a: float, b: float, *,
         bounces += 1
     
     if not collect_states:
-        return current_state
+        return current_state, bounces
     
-    return states
+    return states, bounces

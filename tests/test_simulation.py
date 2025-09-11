@@ -87,9 +87,10 @@ def test_run_returns_states_list():
     a = b = 1.0
     speed = 2.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    states = run(s0, a, b, max_bounces=3)
+    states, bounces = run(s0, a, b, max_bounces=3)
     assert isinstance(states, list)
     assert len(states) == 4  # initial + 3 bounces
+    assert all(isinstance(s, State) for s in states)
     assert np.allclose(states[0].pos, [0.0, 0.0])
     assert np.allclose(states[1].pos, [1.0, 0.0])
     assert np.allclose(states[2].pos, [-1.0, 0.0])
@@ -100,7 +101,7 @@ def test_run_stops_at_max_time():
     a = b = 1.0
     speed = 1.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    states = run(s0, a, b, max_bounces=100, max_time=1.0)
+    states, _ = run(s0, a, b, max_bounces=100, max_time=1.0)
     # Should not exceed max_time
     assert all(s.time <= 1.0 + 1e-9 for s in states)
 
@@ -109,5 +110,5 @@ def test_run_returns_last_state_when_collect_states_false():
     a = b = 1.0
     speed = 1.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    last_state = run(s0, a, b, max_bounces=5, collect_states=False)
+    last_state, bounces = run(s0, a, b, max_bounces=5, collect_states=False)
     assert isinstance(last_state, State)
