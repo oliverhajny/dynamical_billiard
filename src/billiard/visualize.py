@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 from math import atan2, pi
+import warnings
 from billiard.simulation import run
 from billiard.state import State
 from billiard.physics import position_at_time
@@ -39,7 +40,7 @@ def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, sav
     ax.set_xlim(-m*a, m*a)
     ax.set_ylim(-m*b, m*b)
     ax.set_xlabel("x"); ax.set_ylabel("y")
-    ax.set_title("Elliptic billiard")
+    ax.set_title("Dynamical billiard")
 
     def init():
         path.set_data([], [])
@@ -50,6 +51,75 @@ def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, sav
         path.set_data(xs_anim[:i+1], ys_anim[:i+1])
         dot.set_data([xs_anim[i]], [ys_anim[i]])
         return path, dot
+
+    ani = animation.FuncAnimation(fig, update, frames=len(xs_anim), init_func=init,
+                                  blit=True, interval=interval_ms, repeat=False)
+
+    if save_path:
+        ani.save(save_path, fps=max(1, 1000 // max(1, interval_ms)))
+    else:
+        plt.show()
+
+
+def animate_trajectory_shape(states: list[State], shape: Shape, *, interval_ms: int = 25, save_path: str | None = None):
+    """
+    Animate a trajectory for an arbitrary shape. Interpolates linearly between impacts
+    (no collisions assumed within each segment) and draws the boundary via shape.draw(ax).
+    """
+    # 1) interpolate positions for smooth movement between impacts
+    xs_anim: list[float] = []
+    ys_anim: list[float] = []
+    for i in range(len(states) - 1):
+        s0 = states[i]
+        s1 = states[i+1]
+        dt = float(s1.time - s0.time)
+        steps = max(2, int(dt * 1000 // interval_ms))
+        for j in range(steps):
+            t = j * dt / steps
+            pos = position_at_time(s0.pos, s0.dir, s0.speed, t)
+            xs_anim.append(float(pos[0]))
+            ys_anim.append(float(pos[1]))
+    xs_anim.append(float(states[-1].pos[0]))
+    ys_anim.append(float(states[-1].pos[1]))
+
+    # 2) figure + axes + boundary
+    fig, ax = plt.subplots()
+    shape.draw(ax)
+
+    path, = ax.plot([], [], linewidth=1.0)
+    dotp,  = ax.plot([], [], "o")
+
+    ax.set_aspect("equal", adjustable="box")
+
+    # Heuristic bounds: prefer known attributes; otherwise derive from data with margin
+    m = 1.1
+    if hasattr(shape, "a") and hasattr(shape, "b"):
+        a = float(getattr(shape, "a")); b = float(getattr(shape, "b"))
+        ax.set_xlim(-m*a, m*a)
+        ax.set_ylim(-m*b, m*b)
+    elif hasattr(shape, "L") and hasattr(shape, "R"):
+        L = float(getattr(shape, "L")); R = float(getattr(shape, "R"))
+        ax.set_xlim(-m*(L+R), m*(L+R))
+        ax.set_ylim(-m*R, m*R)
+    else:
+        x_min = min(xs_anim); x_max = max(xs_anim)
+        y_min = min(ys_anim); y_max = max(ys_anim)
+        dx = x_max - x_min; dy = y_max - y_min
+        ax.set_xlim(x_min - 0.1*max(1e-6, dx), x_max + 0.1*max(1e-6, dx))
+        ax.set_ylim(y_min - 0.1*max(1e-6, dy), y_max + 0.1*max(1e-6, dy))
+
+    ax.set_xlabel("x"); ax.set_ylabel("y")
+    ax.set_title("Billiard trajectory")
+
+    def init():
+        path.set_data([], [])
+        dotp.set_data([], [])
+        return path, dotp
+
+    def update(i):
+        path.set_data(xs_anim[:i+1], ys_anim[:i+1])
+        dotp.set_data([xs_anim[i]], [ys_anim[i]])
+        return path, dotp
 
     ani = animation.FuncAnimation(fig, update, frames=len(xs_anim), init_func=init,
                                   blit=True, interval=interval_ms, repeat=False)
@@ -102,7 +172,8 @@ def birkhoff_coordinates(states: list[State], a: float, b: float) -> tuple[np.nd
 def birkhoff_coordinates_shape(states: list[State], shape: Shape) -> tuple[np.ndarray, np.ndarray]:
     s_vals = []
     p_vals = []
-    for st in states:
+    # Skip the initial state (typically interior), use post-impact states
+    for st in states[1:]:
         x, y = float(st.pos[0]), float(st.pos[1])
         # rely on shape.arc_param for boundary parameter. If the point is not on boundary,
         # arc_param may be undefined; we skip if it errors.
@@ -135,6 +206,11 @@ def plot_poincare(
         a, b: ellipse semi-axes
         show: call plt.show() at the end
     """
+    warnings.warn(
+        "visualize.plot_poincare(states, a, b, ...) is deprecated; use plot_poincare_shape(states, EllipseShape(a,b), ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     s_vals, p_vals = birkhoff_coordinates(states, a, b)
 
     if ax is None:
@@ -182,6 +258,11 @@ def plot_poincare_groups(
         save_path: optional path to save figure
         ax: optional existing axes to plot into
     """
+    warnings.warn(
+        "visualize.plot_poincare_groups(..., a, b, ...) is deprecated; use plot_poincare_groups_shape(groups, EllipseShape(a,b), ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if ax is None:
         fig, ax = plt.subplots()
     else:
@@ -209,6 +290,99 @@ def plot_poincare_groups(
     ax.set_xlabel("s (boundary coordinate)")
     ax.set_ylabel("p = sin(ψ)")
     ax.set_title("Poincaré map (ellipse)")
+    ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.5)
+    ax.legend(loc="best", fontsize=9)
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    if show:
+        plt.show()
+
+    return fig, ax
+
+
+def plot_poincare_shape(
+    states: list[State],
+    shape: Shape,
+    *,
+    show: bool = True,
+    save_path: str | None = None,
+    ax=None,
+):
+    """
+    Scatter plot of Poincaré (Birkhoff) map for an arbitrary shape.
+
+    Args:
+        states: list of post-impact states (as returned by run_shape with collect_states=True)
+        shape: a Shape providing arc_param and normal_at
+        show: call plt.show() at the end
+        save_path: optional path to save figure
+        ax: optional axes to draw into
+    """
+    s_vals, p_vals = birkhoff_coordinates_shape(states, shape)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
+
+    ax.scatter(s_vals, p_vals, s=4, alpha=0.7)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(-1.05, 1.05)
+    ax.set_xlabel("s (boundary coordinate)")
+    ax.set_ylabel("p = sin(ψ)")
+    ax.set_title("Poincaré map")
+    ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.5)
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    if show:
+        plt.show()
+
+    return fig, ax
+
+
+def plot_poincare_groups_shape(
+    groups: list[list[State]],
+    shape: Shape,
+    *,
+    labels: list[str] | None = None,
+    colors: list[str] | None = None,
+    show: bool = True,
+    save_path: str | None = None,
+    ax=None,
+):
+    """
+    Plot multiple Poincaré datasets with different colors/labels for an arbitrary shape.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
+
+    if labels is None:
+        labels = [f"group {i+1}" for i in range(len(groups))]
+    if colors is None:
+        default = [
+            "tab:blue", "tab:orange", "tab:green", "tab:red",
+            "tab:purple", "tab:brown", "tab:pink", "tab:gray",
+            "tab:olive", "tab:cyan",
+        ]
+        colors = [default[i % len(default)] for i in range(len(groups))]
+
+    for states, label, color in zip(groups, labels, colors):
+        if not states:
+            continue
+        s_vals, p_vals = birkhoff_coordinates_shape(states, shape)
+        ax.scatter(s_vals, p_vals, s=4, alpha=0.7, label=label, color=color)
+
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(-1.05, 1.05)
+    ax.set_xlabel("s (boundary coordinate)")
+    ax.set_ylabel("p = sin(ψ)")
+    ax.set_title("Poincaré map")
     ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.5)
     ax.legend(loc="best", fontsize=9)
 
