@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-from math import atan2, pi
-import warnings
+#from math import atan2, pi
+#import warnings
 from billiard.state import State
 from billiard.physics import position_at_time
 from billiard.geometry import normalize, dot

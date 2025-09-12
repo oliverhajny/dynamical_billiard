@@ -4,7 +4,6 @@ import numpy as np
 import argparse
 from typing import Iterable
 from billiard.visualize import (
-    animate_trajectory,
     animate_trajectory_shape,
     plot_poincare_shape,
     plot_poincare_groups_shape,
@@ -104,14 +103,14 @@ def main():
     p.add_argument("--n-inside", type=int, default=2, help="Ellipse: starts inside foci (|x|<c) along y=0")
     p.add_argument("--n-outside", type=int, default=2, help="Ellipse: starts outside foci (c<|x|<a) along y=0")
     # Stadium params
-    p.add_argument("--R", type=float, default=1.0, help="Stadium cap radius R")
-    p.add_argument("--L", type=float, default=1.0, help="Stadium half-length L")
+    p.add_argument("--R", type=float, default=2.0, help="Stadium cap radius R")
+    p.add_argument("--L", type=float, default=5.0, help="Stadium half-length L")
     p.add_argument("--n-starts", type=int, default=5, help="Stadium: number of start positions along y=0")
     # Common params
     p.add_argument("--n-angles", type=int, default=5, help="Number of initial angles")
     p.add_argument("--angle-min", type=float, default=10.0, help="Min angle in degrees")
     p.add_argument("--angle-max", type=float, default=170.0, help="Max angle in degrees")
-    p.add_argument("--speed", type=float, default=10.0, help="Ball speed")
+    p.add_argument("--speed", type=float, default=30.0, help="Ball speed")
     p.add_argument("--bounces", type=int, default=500, help="Max bounces per trajectory")
     p.add_argument("--animate", action="store_true", help="Animate the first trajectory")
     p.add_argument("--save-poincare", type=str, default=None, help="Path to save Poincaré scatter (PNG)")
@@ -162,7 +161,7 @@ def main():
                 b = a * float(np.sqrt(max(1.0 - e*e, 0.0)))
             else:
                 # default minor axis if not given
-                b = 4.0 if a >= 4.0 else 0.9*a
+                b = 0.6 * a
 
             groups = run_batch(
                 a, b,
