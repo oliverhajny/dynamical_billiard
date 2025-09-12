@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from billiard.simulation import next_step, run
+from billiard.simulation import next_step_shape, run_shape
+from billiard.shapes import EllipseShape
 from billiard.state import State
 
 
@@ -15,7 +16,8 @@ def test_step_unit_circle_axis_hit():
     speed = 2.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
 
-    s1 = next_step(s0, a, b)
+    shape = EllipseShape(a, b)
+    s1 = next_step_shape(s0, shape)
 
     assert np.allclose(s1.pos, [1.0, 0.0])
     assert np.allclose(s1.dir, [-1.0, 0.0])
@@ -30,7 +32,8 @@ def test_step_does_not_mutate_input_state():
     dir0 = np.array([1.0, 0.0])
     s0 = State(pos=pos0, dir=dir0, speed=1.0, time=0.0)
 
-    s1 = next_step(s0, a, b)
+    shape = EllipseShape(a, b)
+    s1 = next_step_shape(s0, shape)
 
     # vstupy beze změny
     assert np.allclose(pos0, [0.0, 0.0])
@@ -54,8 +57,9 @@ def test_two_steps_on_circle_accumulate_time_and_positions():
     speed = 2.0
     s0 = State(np.array([0.0, 0.0]), np.array([1.0, 0.0]), speed=speed, time=0.0)
 
-    s1 = next_step(s0, a, b)
-    s2 = next_step(s1, a, b)
+    shape = EllipseShape(a, b)
+    s1 = next_step_shape(s0, shape)
+    s2 = next_step_shape(s1, shape)
 
     assert np.allclose(s1.pos, [1.0, 0.0])
     assert np.allclose(s1.dir, [-1.0, 0.0])
@@ -76,7 +80,8 @@ def test_step_on_ellipse_major_axis():
     speed = 1.0
     s0 = State(np.array([0.0, 0.0]), np.array([1.0, 0.0]), speed=speed, time=0.0)
 
-    s1 = next_step(s0, a, b)
+    shape = EllipseShape(a, b)
+    s1 = next_step_shape(s0, shape)
 
     assert np.allclose(s1.pos, [2.0, 0.0])
     assert np.allclose(s1.dir, [-1.0, 0.0])
@@ -87,7 +92,8 @@ def test_run_returns_states_list():
     a = b = 1.0
     speed = 2.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    states, bounces = run(s0, a, b, max_bounces=3)
+    shape = EllipseShape(a, b)
+    states, bounces = run_shape(s0, shape, max_bounces=3)
     assert isinstance(states, list)
     assert len(states) == 4  # initial + 3 bounces
     assert all(isinstance(s, State) for s in states)
@@ -101,7 +107,8 @@ def test_run_stops_at_max_time():
     a = b = 1.0
     speed = 1.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    states, _ = run(s0, a, b, max_bounces=100, max_time=1.0)
+    shape = EllipseShape(a, b)
+    states, _ = run_shape(s0, shape, max_bounces=100, max_time=1.0)
     # Should not exceed max_time
     assert all(s.time <= 1.0 + 1e-9 for s in states)
 
@@ -110,5 +117,6 @@ def test_run_returns_last_state_when_collect_states_false():
     a = b = 1.0
     speed = 1.0
     s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([1.0, 0.0]), speed=speed, time=0.0)
-    last_state, bounces = run(s0, a, b, max_bounces=5, collect_states=False)
+    shape = EllipseShape(a, b)
+    last_state, bounces = run_shape(s0, shape, max_bounces=5, collect_states=False)
     assert isinstance(last_state, State)
