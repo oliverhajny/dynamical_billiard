@@ -6,6 +6,7 @@ from billiard.simulation import run
 from billiard.state import State
 from billiard.physics import position_at_time
 from billiard.geometry import normal_at_point, normalize, dot
+from billiard.shapes import Shape
 
 def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, save_path: str | None = None):
     # 1) interpolate positions for smooth movement
@@ -95,6 +96,25 @@ def birkhoff_coordinates(states: list[State], a: float, b: float) -> tuple[np.nd
         s_vals.append(s)
         p_vals.append(p)
 
+    return np.asarray(s_vals), np.asarray(p_vals)
+
+
+def birkhoff_coordinates_shape(states: list[State], shape: Shape) -> tuple[np.ndarray, np.ndarray]:
+    s_vals = []
+    p_vals = []
+    for st in states:
+        x, y = float(st.pos[0]), float(st.pos[1])
+        # rely on shape.arc_param for boundary parameter. If the point is not on boundary,
+        # arc_param may be undefined; we skip if it errors.
+        try:
+            s = shape.arc_param((x, y))
+        except Exception:
+            continue
+        n_out = shape.normal_at((x, y))
+        vhat = normalize(st.dir)
+        p = -dot(vhat, n_out)
+        s_vals.append(s)
+        p_vals.append(p)
     return np.asarray(s_vals), np.asarray(p_vals)
 
 

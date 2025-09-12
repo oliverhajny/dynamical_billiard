@@ -2,6 +2,7 @@ import numpy as np
 import math
 from typing import Tuple, Union
 from billiard.geometry import dot, normalize, normal_at_point, intersect_line_with_ellipse
+from billiard.shapes import Shape
 
 speed = 1.0
 
@@ -76,3 +77,41 @@ def position_at_time(
     direction = direction / np.linalg.norm(direction)
     displacement = direction * speed * t
     return np.asarray(point, dtype=float) + displacement
+
+
+# Shape-agnostic variants (backward-compatible extension)
+
+def advance_shape(
+    point: np.ndarray,
+    direction: np.ndarray,
+    shape: Shape,
+    *,
+    return_t: bool = True,
+):
+    impact_point, t = shape.intersect_ray(point, direction)
+    n_out = shape.normal_at(impact_point)
+    v = np.asarray(direction, dtype=float)
+    v = v / np.linalg.norm(v)
+    new_dir = reflect(v, n_out)
+    if return_t:
+        return impact_point, new_dir, t
+    else:
+        return impact_point, new_dir
+
+
+def advance_with_time_shape(
+    point: np.ndarray,
+    direction: np.ndarray,
+    speed: float,
+    shape: Shape,
+    *,
+    return_t: bool = True,
+):
+    if speed <= 0:
+        raise ValueError("speed must be > 0")
+    impact_point, new_dir, t = advance_shape(point, direction, shape, return_t=True)
+    dt = t / float(speed)
+    if return_t:
+        return impact_point, new_dir, dt, t
+    else:
+        return impact_point, new_dir
