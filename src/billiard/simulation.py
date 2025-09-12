@@ -1,3 +1,4 @@
+import warnings
 from billiard.physics import advance_with_time, advance_with_time_shape
 from billiard.state import State
 from typing import List, Optional
@@ -36,6 +37,11 @@ def run(initial: State, a: float, b: float, *,
     Spustí simulaci od počátečního stavu.
     Vrátí seznam stavů (nebo jen výslednou pozici, podle collect_states) a počet odrazů.
     """
+    warnings.warn(
+        "simulation.run(initial, a, b, ...) is deprecated; use run_shape(initial, EllipseShape(a,b), ...) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return run_shape(initial, EllipseShape(a, b),
                      max_bounces=max_bounces,
                      max_time=max_time,

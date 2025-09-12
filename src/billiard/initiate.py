@@ -96,7 +96,7 @@ def main():
     p = argparse.ArgumentParser(description="Batch simulations and Poincaré plots for billiards")
     p.add_argument("--shape", choices=["ellipse", "stadium"], default="ellipse", help="Billiard shape")
     # Ellipse params
-    p.add_argument("--a", type=float, default=10.0, help="Major semi-axis a (ellipse)")
+    p.add_argument("--a", type=float, default=5.0, help="Major semi-axis a (ellipse)")
     group = p.add_mutually_exclusive_group()
     group.add_argument("--b", type=float, default=None, help="Minor semi-axis b (overrides ecc)")
     group.add_argument("--ecc", type=float, default=None, help="Eccentricity e in [0,1). If given, b=a*sqrt(1-e^2)")

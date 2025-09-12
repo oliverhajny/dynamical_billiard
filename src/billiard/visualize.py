@@ -29,18 +29,31 @@ def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, sav
 
     # 2) figure + axes + ellipse
     fig, ax = plt.subplots()
+    neon = "#39FF14"  # neon green
+    # Background black
+    fig.patch.set_facecolor("black")
+    ax.set_facecolor("black")
+    # Boundary in white
     t = np.linspace(0, 2*np.pi, 400)
-    ax.plot(a*np.cos(t), b*np.sin(t), linewidth=1.2)   # ellipse outline
+    ax.plot(a*np.cos(t), b*np.sin(t), linewidth=1.2, color="white")
 
-    path, = ax.plot([], [], linewidth=1.0)             # trajectory line
-    dot,  = ax.plot([], [], "o")                       # current ball
+    # Trajectory in neon green
+    path, = ax.plot([], [], linewidth=1.0, color=neon)
+    dot,  = ax.plot([], [], "o", color=neon)
 
-    ax.set_aspect("equal", adjustable="box")   
+    ax.set_aspect("equal", adjustable="box")
     m = 1.1
     ax.set_xlim(-m*a, m*a)
     ax.set_ylim(-m*b, m*b)
     ax.set_xlabel("x"); ax.set_ylabel("y")
     ax.set_title("Dynamical billiard")
+    # Text/spines in white
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    ax.title.set_color("white")
+    ax.tick_params(colors="white")
+    for spine in ax.spines.values():
+        spine.set_color("white")
 
     def init():
         path.set_data([], [])
@@ -61,7 +74,14 @@ def animate_trajectory(states, a: float, b: float, *, interval_ms: int = 25, sav
         plt.show()
 
 
-def animate_trajectory_shape(states: list[State], shape: Shape, *, interval_ms: int = 25, save_path: str | None = None):
+def animate_trajectory_shape(
+    states: list[State],
+    shape: Shape,
+    *,
+    interval_ms: int = 25,
+    save_path: str | None = None,
+    color: str = "#39FF14",
+):
     """
     Animate a trajectory for an arbitrary shape. Interpolates linearly between impacts
     (no collisions assumed within each segment) and draws the boundary via shape.draw(ax).
@@ -84,10 +104,14 @@ def animate_trajectory_shape(states: list[State], shape: Shape, *, interval_ms: 
 
     # 2) figure + axes + boundary
     fig, ax = plt.subplots()
-    shape.draw(ax)
+    # Background black, boundary white
+    fig.patch.set_facecolor("black")
+    ax.set_facecolor("black")
+    shape.draw(ax, color="white")
 
-    path, = ax.plot([], [], linewidth=1.0)
-    dotp,  = ax.plot([], [], "o")
+    # Trajectory neon green (default color param)
+    path, = ax.plot([], [], linewidth=1.0, color=color)
+    dotp,  = ax.plot([], [], "o", color=color)
 
     ax.set_aspect("equal", adjustable="box")
 
@@ -110,6 +134,13 @@ def animate_trajectory_shape(states: list[State], shape: Shape, *, interval_ms: 
 
     ax.set_xlabel("x"); ax.set_ylabel("y")
     ax.set_title("Billiard trajectory")
+    # Text/spines in white
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    ax.title.set_color("white")
+    ax.tick_params(colors="white")
+    for spine in ax.spines.values():
+        spine.set_color("white")
 
     def init():
         path.set_data([], [])
