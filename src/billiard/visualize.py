@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-#from math import atan2, pi
-#import warnings
 from billiard.state import State
 from billiard.physics import position_at_time
 from billiard.geometry import normalize, dot
@@ -70,7 +68,6 @@ def animate_trajectory_shape(
 
     ax.set_xlabel("x"); ax.set_ylabel("y")
     ax.set_title("Billiard trajectory")
-    # Text/spines in white
     ax.xaxis.label.set_color("white")
     ax.yaxis.label.set_color("white")
     ax.title.set_color("white")
@@ -149,7 +146,7 @@ def birkhoff_coordinates_shape(states: list[State], shape: Shape) -> tuple[np.nd
     for st in states[1:]:
         x, y = float(st.pos[0]), float(st.pos[1])
         # rely on shape.arc_param for boundary parameter. If the point is not on boundary,
-        # arc_param may be undefined; we skip if it errors.
+        # arc_param may be undefined; skip if it errors.
         try:
             s = shape.arc_param((x, y))
         except Exception:
