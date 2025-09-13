@@ -55,18 +55,9 @@ def intersect_line_with_ellipse(
         ) -> tuple[tuple[float, float], float] | tuple[float, float]:
     """
     Najdi nejbližší průsečík přímky (point + t*direction, t>0) s elipsou x^2/a^2 + y^2/b^2 = 1.
-    - Ošetří tečnu (D ~ 0) i start na hraně (t ~ 0) jemným posunem.
-    - Výsledek přisnapne zpět na elipsu (omezení numerické chyby).
-
-    Args:
-        point: (x0, y0) start (uvnitř nebo na hraně elipsy)
-        direction: (vx, vy) směr (nemusí být jednotkový)
-        a, b: poloosy elipsy
-        eps: tolerance
-        return_t: vrátit i čas/vzdálenost t
-
-    Returns:
-        ([x, y], t)
+    - Ošetří tečnu (D ~ 0) i start na hraně (t ~ 0) jemným posunem (nudge)
+    - Výsledek "přisnapne" zpět na elipsu (omezení numerické chyby).
+-   - Vrací i hodnotu parametru t (geometrická vzdálenost k průsečíku), pokud je return_t=True.
     """
     point = np.array(point, dtype=float)
     direction = np.array(direction, dtype=float)
