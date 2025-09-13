@@ -22,7 +22,7 @@ Instalace (doporučeno virtuální prostředí):
 - Windows (PowerShell): `python -m venv .venv; .\.venv\Scripts\Activate.ps1`
 - Balíčky: `pip install numpy matplotlib pytest`
 
-Spuštění z příkazové řádky v root directory (jako modul):
+Spuštění z příkazové řádky (CLI) (jako modul):
 - Poznámka: při „src“ layoutu je nutné spustit z kořene repozitáře s nastaveným `PYTHONPATH=src` (nebo projekt nainstalovat jako balíček).
   - macOS/Linux (jednorázově): `PYTHONPATH=src python -m billiard ...`
   - Windows PowerShell: `$Env:PYTHONPATH = 'src'; python -m billiard ...`
@@ -63,11 +63,24 @@ import numpy as np
 from billiard.state import State
 from billiard.shapes import EllipseShape
 from billiard.simulation import run_shape
+from billiard.visualize import animate_trajectory_shape, plot_poincare_shape
 
+# Definice tvaru a počátečního stavu
 shape = EllipseShape(a=5.0, b=3.0)
-s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([0.1, 0.9]), speed=20.0, time=0.0)
-states, bounces = run_shape(s0, shape, max_bounces=500)
-print(bounces, states[-1].pos)
+s0 = State(pos=np.array([0.0, 0.0]), dir=np.array([0.2, 0.8]), speed=20.0, time=0.0)
+
+# Výpočet trajektorie
+states, bounces = run_shape(s0, shape, max_bounces=300)
+print(f"Bounces: {bounces}")
+
+# Animace trajektorie (okno)
+animate_trajectory_shape(states, shape, interval_ms=25)
+
+# Uložení animace místo zobrazení (vyžaduje ffmpeg pro MP4)
+# animate_trajectory_shape(states, shape, interval_ms=25, save_path="out/ellipse_traj.mp4")
+
+# Poincarého (Birkhoffova) mapa – zobrazit a/nebo uložit PNG
+plot_poincare_shape(states, shape, show=True, save_path="out/ellipse_poincare.png")
 ```
 
 Testy: `pytest -q`
