@@ -7,6 +7,7 @@ from billiard.state import State
 from billiard.physics import position_at_time
 from billiard.geometry import normalize, dot
 from billiard.shapes import Shape
+import os
 
 
 def animate_trajectory_shape(
@@ -87,12 +88,57 @@ def animate_trajectory_shape(
         dotp.set_data([xs_anim[i]], [ys_anim[i]])
         return path, dotp
 
-    ani = animation.FuncAnimation(fig, update, frames=len(xs_anim), init_func=init,
-                                  blit=True, interval=interval_ms, repeat=False)
-
     if save_path:
-        ani.save(save_path, fps=max(1, 1000 // max(1, interval_ms)))
+        # Ensure parent dir exists
+        parent = os.path.dirname(save_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+
+        fps = max(1, 1000 // max(1, interval_ms))
+        root, ext = os.path.splitext(save_path)
+        ext = (ext or ".mp4").lower()
+
+        Writer = None
+        out_path = save_path
+        if ext in (".gif", ".webp"):
+            try:
+                from matplotlib.animation import PillowWriter
+                Writer = PillowWriter
+            except Exception:
+                # fallback to mp4
+                from matplotlib.animation import FFMpegWriter
+                Writer = FFMpegWriter
+                out_path = root + ".mp4"
+        else:
+            try:
+                from matplotlib.animation import FFMpegWriter
+                Writer = FFMpegWriter
+            except Exception:
+                from matplotlib.animation import PillowWriter
+                Writer = PillowWriter
+                out_path = root + ".gif"
+
+        writer = Writer(fps=fps)
+
+        # Manual save loop with simple progress output
+        total = len(xs_anim)
+        step = max(1, total // 20)  # ~5% steps
+        with writer.saving(fig, out_path, dpi=150):
+            # initialize artists once
+            init()
+            for i in range(total):
+                update(i)
+                # ensure canvas is updated before grabbing
+                fig.canvas.draw()
+                writer.grab_frame()
+                if (i + 1) % step == 0 or (i + 1) == total:
+                    print(f"Saving animation: {i+1}/{total} frames -> {out_path}")
+        plt.close(fig)
     else:
+        ani = animation.FuncAnimation(
+            fig, update, frames=len(xs_anim), init_func=init,
+            blit=True, interval=interval_ms, repeat=False
+        )
         plt.show()
 
 

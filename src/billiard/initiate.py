@@ -92,14 +92,19 @@ def run_batch_stadium(R: float, L: float, *, n_starts: int, n_angles: int,
 
 
 def main():
-    p = argparse.ArgumentParser(description="Batch simulations and Poincaré plots for billiards")
+    p = argparse.ArgumentParser(description="Single or batch simulations and Poincaré plots for billiards")
     p.add_argument("--shape", choices=["ellipse", "stadium"], default="ellipse", help="Billiard shape")
+    # Single-run toggle and initial conditions
+    p.add_argument("--single", action="store_true", help="Run a single trajectory instead of a batch")
+    p.add_argument("--x0", type=float, default=0.0, help="Single: initial x position")
+    p.add_argument("--y0", type=float, default=0.0, help="Single: initial y position")
+    p.add_argument("--vx", type=float, default=0.1, help="Single: initial direction x-component")
+    p.add_argument("--vy", type=float, default=0.9, help="Single: initial direction y-component")
     # Ellipse params
     p.add_argument("--a", type=float, default=5.0, help="Major semi-axis a (ellipse)")
     group = p.add_mutually_exclusive_group()
     group.add_argument("--b", type=float, default=None, help="Minor semi-axis b (overrides ecc)")
     group.add_argument("--ecc", type=float, default=None, help="Eccentricity e in [0,1). If given, b=a*sqrt(1-e^2)")
-    group.add_argument("--ecc-scan", nargs=3, metavar=("E_MIN","E_MAX","N"), help="Scan eccentricity range; ellipse only")
     p.add_argument("--n-inside", type=int, default=2, help="Ellipse: starts inside foci (|x|<c) along y=0")
     p.add_argument("--n-outside", type=int, default=2, help="Ellipse: starts outside foci (c<|x|<a) along y=0")
     # Stadium params
@@ -110,59 +115,39 @@ def main():
     p.add_argument("--n-angles", type=int, default=5, help="Number of initial angles")
     p.add_argument("--angle-min", type=float, default=10.0, help="Min angle in degrees")
     p.add_argument("--angle-max", type=float, default=170.0, help="Max angle in degrees")
-    p.add_argument("--speed", type=float, default=30.0, help="Ball speed")
+    p.add_argument("--speed", type=float, default=20.0, help="Ball speed")
     p.add_argument("--bounces", type=int, default=500, help="Max bounces per trajectory")
     p.add_argument("--animate", action="store_true", help="Animate the first trajectory")
+    p.add_argument("--anim-interval", type=int, default=25, help="Animation frame interval in ms (affects FPS and export time)")
+    p.add_argument("--save-anim", type=str, default=None, help="Path to save animation (e.g., .gif, .mp4). In batch mode saves the first trajectory.")
     p.add_argument("--save-poincare", type=str, default=None, help="Path to save Poincaré scatter (PNG)")
-    p.add_argument("--save-prefix", type=str, default=None, help="Prefix to save multiple plots when scanning")
     args = p.parse_args()
+
 
     if args.shape == "ellipse":
         a = float(args.a)
-        if args.ecc_scan is not None:
-            e_min, e_max, n = args.ecc_scan
-            e_min = float(e_min); e_max = float(e_max); n = int(float(n))
-            if not (0.0 <= e_min < 1.0 and 0.0 <= e_max < 1.0 and n >= 1):
-                raise SystemExit("--ecc-scan requires 0<=E_MIN,E_MAX<1 and N>=1")
-            es = np.linspace(e_min, e_max, n)
-            for e in es:
-                b = a * float(np.sqrt(max(1.0 - e*e, 0.0)))
-                groups = run_batch(
-                    a, b,
-                    n_inside=args.n_inside,
-                    n_outside=args.n_outside,
-                    n_angles=args.n_angles,
-                    deg_min=args.angle_min,
-                    deg_max=args.angle_max,
-                    speed=args.speed,
-                    bounces=args.bounces,
-                )
-                inside_states: list[State] = [s for traj in groups.get("inside", []) for s in traj]
-                outside_states: list[State] = [s for traj in groups.get("outside", []) for s in traj]
-                save_path = None
-                if args.save_prefix:
-                    save_path = f"{args.save_prefix}_e{e:.3f}.png"
-                show = args.save_prefix is None
-                shape = EllipseShape(a, b)
-                plot_poincare_groups_shape(
-                    [inside_states, outside_states], shape,
-                    labels=["inside |x|<c", "outside |x|>c"],
-                    colors=["tab:blue", "tab:orange"],
-                    show=show,
-                    save_path=save_path,
-                )
-        else:
-            if args.b is not None:
+        if args.b is not None:
                 b = float(args.b)
-            elif args.ecc is not None:
+        elif args.ecc is not None:
                 e = float(args.ecc)
                 if not (0.0 <= e < 1.0):
                     raise SystemExit("eccentricity must be in [0,1)")
                 b = a * float(np.sqrt(max(1.0 - e*e, 0.0)))
-            else:
+        else:
                 # default minor axis if not given
                 b = 0.6 * a
 
+        if args.single:
+            shape_obj = EllipseShape(a, b)
+            s0 = State(pos=np.array([args.x0, args.y0]), dir=np.array([args.vx, args.vy]), speed=args.speed, time=0.0)
+            states, _ = run_shape(s0, shape_obj, max_bounces=args.bounces)
+            if args.save_anim:
+                animate_trajectory_shape(states, shape_obj, interval_ms=args.anim_interval, save_path=args.save_anim)
+            elif args.animate:
+                animate_trajectory_shape(states, shape_obj, interval_ms=args.anim_interval)
+            show = (args.save_poincare is None) and (not args.save_anim)
+            plot_poincare_shape(states, shape_obj, show=show, save_path=args.save_poincare)
+        else:
             groups = run_batch(
                 a, b,
                 n_inside=args.n_inside,
@@ -181,10 +166,13 @@ def main():
                 first_traj = groups["inside"][0]
             elif groups.get("outside"):
                 first_traj = groups["outside"][0]
-            if args.animate and first_traj is not None:
+            if first_traj is not None:
                 shape_obj = EllipseShape(a, b)
-                animate_trajectory_shape(first_traj, shape_obj, interval_ms=16)
-            show = args.save_poincare is None
+                if args.save_anim:
+                    animate_trajectory_shape(first_traj, shape_obj, interval_ms=args.anim_interval, save_path=args.save_anim)
+                elif args.animate:
+                    animate_trajectory_shape(first_traj, shape_obj, interval_ms=args.anim_interval)
+            show = (args.save_poincare is None) and (not args.save_anim)
             shape = EllipseShape(a, b)
             plot_poincare_groups_shape(
                 [inside_states, outside_states], shape,
@@ -195,31 +183,41 @@ def main():
             )
     elif args.shape == "stadium":
         R = float(args.R); L = float(args.L)
-        groups = run_batch_stadium(
-            R, L,
-            n_starts=args.n_starts,
-            n_angles=args.n_angles,
-            deg_min=args.angle_min,
-            deg_max=args.angle_max,
-            speed=args.speed,
-            bounces=args.bounces,
-        )
-        left_states: list[State] = [s for traj in groups.get("left", []) for s in traj]
-        right_states: list[State] = [s for traj in groups.get("right", []) for s in traj]
-        shape = StadiumShape(R, L)
-        # pick a trajectory to animate, prefer left group
-        first_traj = None
-        if groups.get("left"):
-            first_traj = groups["left"][0]
-        elif groups.get("right"):
-            first_traj = groups["right"][0]
-        if args.animate and first_traj is not None:
-            animate_trajectory_shape(first_traj, shape, interval_ms=16)
-        # Plot without color grouping (merge all states)
-        show = args.save_poincare is None
-        all_states: list[State] = left_states + right_states
-        plot_poincare_shape(all_states, shape, show=show, save_path=args.save_poincare)
-
-
-if __name__ == "__main__":
-    main()
+        if args.single:
+            shape = StadiumShape(R, L)
+            s0 = State(pos=np.array([args.x0, args.y0]), dir=np.array([args.vx, args.vy]), speed=args.speed, time=0.0)
+            states, _ = run_shape(s0, shape, max_bounces=args.bounces)
+            if args.save_anim:
+                animate_trajectory_shape(states, shape, interval_ms=args.anim_interval, save_path=args.save_anim)
+            elif args.animate:
+                animate_trajectory_shape(states, shape, interval_ms=args.anim_interval)
+            show = (args.save_poincare is None) and (not args.save_anim)
+            plot_poincare_shape(states, shape, show=show, save_path=args.save_poincare)
+        else:
+            groups = run_batch_stadium(
+                R, L,
+                n_starts=args.n_starts,
+                n_angles=args.n_angles,
+                deg_min=args.angle_min,
+                deg_max=args.angle_max,
+                speed=args.speed,
+                bounces=args.bounces,
+            )
+            left_states: list[State] = [s for traj in groups.get("left", []) for s in traj]
+            right_states: list[State] = [s for traj in groups.get("right", []) for s in traj]
+            shape = StadiumShape(R, L)
+            # pick a trajectory to animate, prefer left group
+            first_traj = None
+            if groups.get("left"):
+                first_traj = groups["left"][0]
+            elif groups.get("right"):
+                first_traj = groups["right"][0]
+            if first_traj is not None:
+                if args.save_anim:
+                    animate_trajectory_shape(first_traj, shape, interval_ms=args.anim_interval, save_path=args.save_anim)
+                elif args.animate:
+                    animate_trajectory_shape(first_traj, shape, interval_ms=args.anim_interval)
+            # Plot without color grouping (merge all states)
+            show = (args.save_poincare is None) and (not args.save_anim)
+            all_states: list[State] = left_states + right_states
+            plot_poincare_shape(all_states, shape, show=show, save_path=args.save_poincare)
