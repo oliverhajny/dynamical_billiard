@@ -1,10 +1,7 @@
 import numpy as np
-import math
-from typing import Tuple, Union
-from billiard.geometry import dot, normalize, normal_at_point, intersect_line_with_ellipse
+from billiard.geometry import dot, normalize
 from billiard.shapes import Shape
 
-#speed = 1.0
 
 def reflect(direction: np.ndarray, normal: np.ndarray) -> np.ndarray:
     """
