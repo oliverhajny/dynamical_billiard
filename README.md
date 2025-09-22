@@ -9,7 +9,7 @@ Studujeme pohyb hmotného bodu (kuličky) uvnitř ohraničeného tvaru (elipsa n
 - generovat Poincarého mapy systému,
 - vizualizovat průběh (animace trajektorie) a ukládat výsledky.
 
-Poincarého mapa je způsob, jak zaznamenat do 2D obrázku průběh složitějšího (více dimenzionálního) dynamického systému. V našem případě Poincarého mapa ukazuje pouze ty stavy, kdy se kulička dotkne hrany. Využíváme Birkhoffových souřadnic (s, p), kde 's' představuje pozici na hraně a 'p' sinus úhlu mezi směrovým vektorem a tečnou v bodě dopadu.
+Poincarého mapa je způsob, jak zaznamenat do 2D obrázku průběh složitějšího (více dimenzionálního) dynamického systému. V našem případě Poincarého mapa ukazuje pouze ty stavy, kdy se kulička dotkne hrany. Využíváme Birkhoffových souřadnic (s, p), kde 's' představuje pozici na obvodu billiardu a 'p' sinus úhlu mezi směrovým vektorem a tečnou v bodě dopadu.
 
 Bunimovičův stadion je tvořen dvěma stejně dlouhými rovnoběžnými úsečkami spojenými polokružnicemi. Na rozdíl od eliptického biliardu stadion vykazuje chaotické chování (jak lze vidět z Poincarého map).
 
@@ -23,17 +23,19 @@ Instalace (doporučeno virtuální prostředí):
 - Balíčky: `pip install numpy matplotlib pytest`
 
 Spuštění z příkazové řádky (CLI) (jako modul):
+Default run spustí vícero simulucí naráz s různými počátečními pozicemi a počátečním směrem a vygeneruje Poincarého mapu všech těchto trajektorií. Níže jsou vypsány všechny argumenty, které lze do CLI zadat a upravit tak tvar billiardu nebo jiné vlastnosti. K vygenerování animace trajektorie (v případě vícero simulací se vygeneruje první trajektorie) slouží argument --animate.
+
 - Poznámka: při „src“ layoutu je nutné spustit z kořene repozitáře s nastaveným `PYTHONPATH=src` (nebo projekt nainstalovat jako balíček).
   - macOS/Linux (jednorázově): `PYTHONPATH=src python -m billiard ...`
   - Windows PowerShell: `$Env:PYTHONPATH = 'src'; python -m billiard ...`
   - Windows CMD: `set PYTHONPATH=src && python -m billiard ...`
-- Default běh (elipsa):
+- Default run (elipsa):
   - `python -m billiard`
 - Elipsa, jedna trajektorie s animací:
   - `python -m billiard --shape ellipse --a 5 --ecc 0.6 --single --animate`
 - Elipsa, dávka startů a úhlů, uložení Poincaré mapy:
   - `python -m billiard --shape ellipse --a 5 --ecc 0.6 --n-inside 3 --n-outside 3 --n-angles 7 --angle-min 10 --angle-max 170 --bounces 500 --save-poincare out/poincare_ellipse.png`
-- Stadium, jedna trajektorie, animace + uložení videa:
+- Stadion, jedna trajektorie, animace + uložení videa:
   - `python -m billiard --shape stadium --R 2.0 --L 5.0 --single --animate --save-anim out/stadium.mp4`
 
 Argumenty, které lze v CLI zadat:
